@@ -10,13 +10,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// Define schema
 const bookSchema = new mongoose.Schema({
   title: String,
   author: String,
@@ -30,7 +28,6 @@ const bookSchema = new mongoose.Schema({
 
 const Book = mongoose.model("Book", bookSchema);
 
-// Routes
 app.get("/", (req, res) => res.send("Jewish Book Database backend is live."));
 
 app.get("/books", async (req, res) => {
@@ -63,7 +60,7 @@ app.post("/admin/approve/:id", async (req, res) => {
   res.json({ message: "Book approved." });
 });
 
-// Web crawler logic (sample)
+// Web crawler
 const crawlSite = async (url, selectors, publisherName) => {
   try {
     const { data } = await axios.get(url);
@@ -93,4 +90,26 @@ const crawlSite = async (url, selectors, publisherName) => {
   }
 };
 
-const runCrawler = async ()
+const runCrawler = async () => {
+  await crawlSite("https://example.com/new-jewish-books", {
+    entry: ".book-entry",
+    title: ".title",
+    author: ".author",
+    blurb: ".description",
+    cover: "img",
+    date: ".date",
+  }, "Sample Publisher");
+};
+
+app.get("/crawl/sample-publisher", async (req, res) => {
+  await runCrawler();
+  res.json({ message: "Crawler run complete." });
+});
+
+cron.schedule("0 3 * * *", () => {
+  console.log("Running daily crawler...");
+  runCrawler();
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
